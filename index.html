@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .video-container {
+            width: 80%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+        video.fade-out {
+            opacity: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="videoPlayer" autoplay muted>
+            <source src="invitation_videos/first.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <script>
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videos = [
+            {src: 'invitation_videos/first.mp4', link: null},
+            {src: 'invitation_videos/second.mp4', link: null},
+            {src: 'invitation_videos/third.mp4', link: 'https://maps.app.goo.gl/wq56GQ4y13saKX3V9'}
+        ];
+        let currentVideoIndex = 0;
+
+        videoPlayer.addEventListener('ended', () => {
+            playNextVideo().catch(console.error);
+        });
+        videoPlayer.addEventListener('click', handleVideoClick);
+
+        async function playNextVideo() {
+            // If it's the third video, don't do anything when it ends
+            if (currentVideoIndex === 2) {
+                videoPlayer.pause();
+                return;
+            }
+            
+            // Fade out current video
+            videoPlayer.classList.add('fade-out');
+            
+            // Wait for fade out to complete
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Change video source
+            currentVideoIndex = currentVideoIndex + 1; // Don't loop back to start
+            videoPlayer.src = videos[currentVideoIndex].src;
+            
+            // When the new video is ready, fade it in and play
+            videoPlayer.onloadeddata = () => {
+                videoPlayer.classList.remove('fade-out');
+                videoPlayer.play();
+                
+                // If it's the second video, set a timeout to skip to the third video 20 seconds before it ends
+                if (currentVideoIndex === 1) {
+                    videoPlayer.oncanplay = () => {
+                        // Start fade out 20 seconds before the end of the second video
+                        const fadeOutTime = Math.max(0, (videoPlayer.duration - 20) * 1000); // Ensure non-negative
+                        setTimeout(() => {
+                            if (currentVideoIndex === 1) { // Check if still on the second video
+                                playNextVideo(); // Move to third video
+                            }
+                        }, fadeOutTime);
+                    };
+                }
+            };
+        }
+
+        function handleVideoClick() {
+            const currentVideo = videos[currentVideoIndex];
+            if (currentVideo.link) {
+                window.open(currentVideo.link, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
