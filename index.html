@@ -52,18 +52,22 @@
         const videos = [
             {src: 'invitation_videos/first.mp4', link: null},
             {src: 'invitation_videos/second.mp4', link: null},
-            {src: 'invitation_videos/third.mp4', link: 'https://maps.app.goo.gl/wq56GQ4y13saKX3V9'}
+            {src: 'invitation_videos/third.mp4', link: null},
+            {src: 'invitation_videos/fourth.mp4', link: 'https://maps.app.goo.gl/wq56GQ4y13saKX3V9'}
         ];
         let currentVideoIndex = 0;
 
         videoPlayer.addEventListener('ended', () => {
             playNextVideo().catch(console.error);
         });
+        
+        // Ensure the first video starts playing
+        videoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
         videoPlayer.addEventListener('click', handleVideoClick);
 
         async function playNextVideo() {
-            // If it's the third video, don't do anything when it ends
-            if (currentVideoIndex === 2) {
+            // If it's the last video, don't do anything when it ends
+            if (currentVideoIndex >= videos.length - 1) {
                 videoPlayer.pause();
                 return;
             }
@@ -75,27 +79,59 @@
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Change video source
-            currentVideoIndex = currentVideoIndex + 1; // Don't loop back to start
-            videoPlayer.src = videos[currentVideoIndex].src;
+            currentVideoIndex = currentVideoIndex + 1;
+            const nextVideo = videos[currentVideoIndex];
             
-            // When the new video is ready, fade it in and play
-            videoPlayer.onloadeddata = () => {
+            // Set up the event handlers before changing the source
+            const canPlayHandler = () => {
                 videoPlayer.classList.remove('fade-out');
-                videoPlayer.play();
+                videoPlayer.play().catch(e => {
+                    console.error('Error playing video:', e);
+                    // If autoplay fails, try again with a small delay
+                    setTimeout(() => videoPlayer.play().catch(console.error), 100);
+                });
                 
-                // If it's the second video, set a timeout to skip to the third video 20 seconds before it ends
+                // Special handling for the second video - skip 20 seconds before end
                 if (currentVideoIndex === 1) {
-                    videoPlayer.oncanplay = () => {
-                        // Start fade out 20 seconds before the end of the second video
-                        const fadeOutTime = Math.max(0, (videoPlayer.duration - 20) * 1000); // Ensure non-negative
-                        setTimeout(() => {
-                            if (currentVideoIndex === 1) { // Check if still on the second video
-                                playNextVideo(); // Move to third video
-                            }
-                        }, fadeOutTime);
-                    };
+                    const duration = videoPlayer.duration || 30; // Fallback to 30s if duration not available
+                    const fadeOutTime = Math.max(0, (duration - 20) * 1000);
+                    console.log(`Second video: will skip to next in ${fadeOutTime}ms`);
+                    
+                    const skipTimer = setTimeout(() => {
+                        if (currentVideoIndex === 1) {
+                            console.log('Skipping second video early');
+                            playNextVideo();
+                        }
+                    }, fadeOutTime);
+                    
+                    // Clean up the timer if the video ends normally
+                    videoPlayer.addEventListener('ended', function onEnded() {
+                        clearTimeout(skipTimer);
+                        videoPlayer.removeEventListener('ended', onEnded);
+                    }, { once: true });
                 }
             };
+            
+            // Set up the error handler
+            const errorHandler = (e) => {
+                console.error('Video error:', e);
+                // If there's an error, try to move to the next video
+                if (currentVideoIndex < videos.length - 1) {
+                    playNextVideo();
+                }
+            };
+            
+            // Set up event listeners
+            videoPlayer.oncanplay = canPlayHandler;
+            videoPlayer.onerror = errorHandler;
+            
+            // Change the source after setting up the handlers
+            videoPlayer.src = nextVideo.src;
+            
+            // If the video is already loaded, trigger play immediately
+            if (videoPlayer.readyState >= 3) {
+                canPlayHandler();
+            }
         }
 
         function handleVideoClick() {
