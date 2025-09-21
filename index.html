@@ -114,15 +114,61 @@
     </style>
 </head>
 <body>
+    <!-- Background Music -->
+    <audio id="bgMusic" loop>
+        <source src="invitation_videos/wedding_nasheed.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
     <video id="videoPlayer" autoplay muted>
         <source src="invitation_videos/first.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
     <div id="mapButtonContainer">
-        <button id="mapButton" onclick="window.open('https://maps.app.goo.gl/pt2UHL2pqdufWrAv7', '_blank')">Ustiga bosing</button>
+        <button id="mapButton">Ustiga bosing</button>
     </div>
 
     <script>
+        // Background Music Setup
+        const bgMusic = document.getElementById('bgMusic');
+        
+        // Function to play music
+        const playMusic = () => {
+            bgMusic.volume = 0.5; // Set volume to 50%
+            const playPromise = bgMusic.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log('Autoplay prevented, will play after user interaction');
+                });
+            }
+        };
+        
+        // Try to play music on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            playMusic();
+        });
+        
+        // Also try to play on first user interaction
+        const playOnInteraction = () => {
+            playMusic();
+            document.removeEventListener('click', playOnInteraction);
+            document.removeEventListener('touchstart', playOnInteraction);
+        };
+        
+        document.addEventListener('click', playOnInteraction);
+        document.addEventListener('touchstart', playOnInteraction);
+        
+        // Map Button Click Handler
+        document.getElementById('mapButton').addEventListener('click', function() {
+            // Mute the background music
+            if (bgMusic) {
+                bgMusic.muted = true; // This will mute the audio
+            }
+            // Open the map in a new tab
+            window.open('https://maps.app.goo.gl/pt2UHL2pqdufWrAv7', '_blank');
+        });
+        
+        // Video Player Setup
         const videoPlayer = document.getElementById('videoPlayer');
         const videos = [
             {src: 'invitation_videos/first.mp4'},
