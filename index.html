@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
         body, html {
             margin: 0;
@@ -16,6 +17,17 @@
             justify-content: center;
             align-items: center;
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
         video {
             max-width: 100%;
             max-height: 100%;
@@ -53,8 +65,7 @@
             backdrop-filter: blur(8px);
             background-color: rgba(0, 0, 0, 0.5);
             opacity: 0;
-            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            animation-delay: 0.3s;
+            animation: fadeIn 0.6s ease-out forwards;
         }
         
         #mapButton {
@@ -119,8 +130,45 @@
         <source src="invitation_videos/wedding_nasheed.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
-    <video id="videoPlayer" autoplay muted>
-        <source src="invitation_videos/first.mp4" type="video/mp4">
+    
+    <!-- Play Button Overlay -->
+    <div id="playOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 3000; transition: opacity 0.5s ease-out, visibility 0.5s ease-out;">
+        <button id="playButton" style="
+            align-items: center;
+            appearance: none;
+            background-color: #fcfcfd;
+            border-radius: 4px;
+            border-width: 0;
+            box-shadow: rgba(45, 35, 66, 0.2) 0 2px 4px, rgba(45, 35, 66, 0.15) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset;
+            box-sizing: border-box;
+            color: #36395a;
+            cursor: pointer;
+            display: inline-flex;
+            height: 60px;
+            min-width: 300px;
+            justify-content: center;
+            line-height: 1.2;
+            list-style: none;
+            overflow: hidden;
+            padding: 12px 40px;
+            position: relative;
+            text-align: center;
+            text-decoration: none;
+            transition: box-shadow 0.15s, transform 0.15s;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            white-space: nowrap;
+            will-change: box-shadow, transform;
+            font-size: 32px;
+            font-family: 'Dancing Script', cursive;
+            letter-spacing: 1px;
+        ">
+            Taklishnomani ochish
+        </button>
+    </div>
+    <video id="videoPlayer" muted style="display: none;">
+        <source src="invitation_videos/video.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
     <div id="mapButtonContainer">
@@ -128,35 +176,103 @@
     </div>
 
     <script>
-        // Background Music Setup
+        // Get elements
         const bgMusic = document.getElementById('bgMusic');
+        const playOverlay = document.getElementById('playOverlay');
+        const videoPlayer = document.getElementById('videoPlayer');
+        let audioStarted = false;
         
-        // Function to play music
-        const playMusic = () => {
-            bgMusic.volume = 0.5; // Set volume to 50%
-            const playPromise = bgMusic.play();
+        // Function to start audio and video
+        function startAudioAndVideo() {
+            if (audioStarted) return;
             
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log('Autoplay prevented, will play after user interaction');
-                });
-            }
-        };
+            // Add click effect to the button
+            playButton.style.boxShadow = '#d6d6e7 0 3px 7px inset';
+            playButton.style.transform = 'translateY(2px)';
+            
+            // Start audio and video after a short delay for the click effect
+            setTimeout(() => {
+                try {
+                    // Start audio
+                    bgMusic.volume = 0.5;
+                    const audioPromise = bgMusic.play();
+                    
+                    // Start video
+                    videoPlayer.style.display = 'block';
+                    const videoPromise = videoPlayer.play();
+                    
+                    // Handle both promises
+                    Promise.all([audioPromise, videoPromise])
+                        .then(() => {
+                            // Fade out the overlay only when both start successfully
+                            playOverlay.style.opacity = '0';
+                            playOverlay.style.visibility = 'hidden';
+                            audioStarted = true;
+                        })
+                        .catch(error => {
+                            console.log('Playback error:', error);
+                            // If video fails to play, still proceed but show the map button
+                            videoPlayer.onended();
+                            
+                            // Still try to hide the overlay
+                            playOverlay.style.opacity = '0';
+                            playOverlay.style.visibility = 'hidden';
+                            audioStarted = true;
+                        });
+                } catch (error) {
+                    console.error('Error starting media:', error);
+                    // If there's an error, still proceed but show the map button
+                    videoPlayer.onended();
+                    
+                    playOverlay.style.opacity = '0';
+                    playOverlay.style.visibility = 'hidden';
+                    audioStarted = true;
+                }
+            }, 100);
+        }
         
-        // Try to play music on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            playMusic();
+        // Get the play button
+        const playButton = document.getElementById('playButton');
+        
+        // Handle play button click
+        playButton.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling to overlay
+            startAudioAndVideo();
         });
         
-        // Also try to play on first user interaction
-        const playOnInteraction = () => {
-            playMusic();
-            document.removeEventListener('click', playOnInteraction);
-            document.removeEventListener('touchstart', playOnInteraction);
-        };
+        // Handle overlay click (for any clicks outside the button)
+        playOverlay.addEventListener('click', function(e) {
+            if (e.target === playOverlay) {
+                startAudioAndVideo();
+            }
+        });
         
-        document.addEventListener('click', playOnInteraction);
-        document.addEventListener('touchstart', playOnInteraction);
+        // Show the play button overlay initially with hover effect
+        document.addEventListener('DOMContentLoaded', () => {
+            playOverlay.style.opacity = '1';
+            playOverlay.style.visibility = 'visible';
+            
+            // Add hover effect
+            playButton.addEventListener('mouseenter', function() {
+                playButton.style.boxShadow = 'rgba(45, 35, 66, 0.3) 0 4px 8px, rgba(45, 35, 66, 0.2) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset';
+                playButton.style.transform = 'translateY(-2px)';
+            });
+            
+            playButton.addEventListener('mouseleave', function() {
+                playButton.style.boxShadow = 'rgba(45, 35, 66, 0.2) 0 2px 4px, rgba(45, 35, 66, 0.15) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset';
+                playButton.style.transform = 'translateY(0)';
+            });
+            
+            playButton.addEventListener('mousedown', function() {
+                playButton.style.boxShadow = '#d6d6e7 0 3px 7px inset';
+                playButton.style.transform = 'translateY(2px)';
+            });
+            
+            playButton.addEventListener('mouseup', function() {
+                playButton.style.boxShadow = 'rgba(45, 35, 66, 0.3) 0 4px 8px, rgba(45, 35, 66, 0.2) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset';
+                playButton.style.transform = 'translateY(-2px)';
+            });
+        });
         
         // Map Button Click Handler
         document.getElementById('mapButton').addEventListener('click', function() {
@@ -168,53 +284,25 @@
             window.open('https://maps.app.goo.gl/pt2UHL2pqdufWrAv7', '_blank');
         });
         
-        // Video Player Setup
-        const videoPlayer = document.getElementById('videoPlayer');
-        const videos = [
-            {src: 'invitation_videos/first.mp4'},
-            {src: 'invitation_videos/third.mp4'}
-        ];
-        let currentVideoIndex = 0;
-
-        // Play the current video
-        function playCurrentVideo() {
-            const currentVideo = videos[currentVideoIndex];
-            videoPlayer.src = currentVideo.src;
-            
-            videoPlayer.oncanplay = function() {
-                videoPlayer.play().catch(e => {
-                    console.log('Autoplay prevented, trying again...');
-                    // If autoplay is prevented, try again with a small delay
-                    setTimeout(() => videoPlayer.play().catch(console.error), 100);
-                });
-            };
-
-            // When video ends, play the next one or show button
-            videoPlayer.onended = function() {
-                if (currentVideoIndex < videos.length - 1) {
-                    currentVideoIndex++;
-                    playCurrentVideo();
-                } else {
-                    // Show the map button container when last video ends
-                    const mapButtonContainer = document.getElementById('mapButtonContainer');
-                    mapButtonContainer.style.display = 'flex';
-                    // Force reflow to ensure the animation plays
-                    void mapButtonContainer.offsetWidth;
-                }
-            };
-
-            // Handle any errors
-            videoPlayer.onerror = function() {
-                console.error('Error playing video:', currentVideo.src);
-                if (currentVideoIndex < videos.length - 1) {
-                    currentVideoIndex++;
-                    playCurrentVideo();
-                }
-            };
-        }
-
-        // Start playing the first video
-        playCurrentVideo();
+        // Set the video source but don't start it automatically
+        videoPlayer.src = 'invitation_videos/video.mp4';
+        
+        // When video ends, show button after 2 seconds
+        videoPlayer.onended = function() {
+            setTimeout(() => {
+                const mapButtonContainer = document.getElementById('mapButtonContainer');
+                mapButtonContainer.style.display = 'flex';
+                // Force reflow to ensure the animation plays
+                void mapButtonContainer.offsetWidth;
+            }, 2000); // 2 second delay before showing button
+        };
+        
+        // Handle video errors
+        videoPlayer.onerror = function() {
+            console.error('Error loading video');
+            // If video fails to load, show the button immediately
+            document.getElementById('mapButtonContainer').style.display = 'flex';
+        };
     </script>
 </body>
 </html>
