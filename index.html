@@ -171,8 +171,10 @@
         <source src="invitation_videos/video.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
-    <div id="mapButtonContainer">
-        <button id="mapButton">Albatta boraman!</button>
+    <div id="closeButtonContainer" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;">
+        <button id="closeButton" style="padding: 12px 30px; font-size: 18px; border: none; border-radius: 25px; background: linear-gradient(45deg, #ff6b6b, #ff8e8e); color: white; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
+            Albatta boraman!
+        </button>
     </div>
 
     <script>
@@ -274,12 +276,14 @@
             });
         });
         
-        // Map Button Click Handler - Close Website
-        document.getElementById('mapButton').addEventListener('click', function() {
+        // Close Button Click Handler
+        document.getElementById('closeButton').addEventListener('click', function() {
             // Mute the background music
             if (bgMusic) {
                 bgMusic.muted = true;
             }
+            // Show a thank you message
+            alert('Rahmat! Sizni kutyapmiz!');
             // Close the current window/tab
             window.close();
             // Fallback in case window.close() doesn't work
@@ -290,22 +294,32 @@
         // Set the video source but don't start it automatically
         videoPlayer.src = 'invitation_videos/video.mp4';
         
-        // When video ends, show button after 2 seconds
+        // When video ends, show close button after 2 seconds
         videoPlayer.onended = function() {
             setTimeout(() => {
-                const mapButtonContainer = document.getElementById('mapButtonContainer');
-                mapButtonContainer.style.display = 'flex';
-                // Force reflow to ensure the animation plays
-                void mapButtonContainer.offsetWidth;
+                const closeButtonContainer = document.getElementById('closeButtonContainer');
+                closeButtonContainer.style.display = 'block';
+                // Add fade-in animation
+                closeButtonContainer.style.animation = 'fadeIn 0.5s ease-in';
             }, 2000); // 2 second delay before showing button
         };
         
         // Handle video errors
         videoPlayer.onerror = function() {
             console.error('Error loading video');
-            // If video fails to load, show the button immediately
-            document.getElementById('mapButtonContainer').style.display = 'flex';
+            // If video fails to load, show the close button immediately
+            document.getElementById('closeButtonContainer').style.display = 'block';
         };
+        
+        // Add fadeIn animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
