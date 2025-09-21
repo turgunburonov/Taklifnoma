@@ -4,8 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Player</title>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Preload the font -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap">
+    <!-- Load the font with font-display: swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet"></noscript>
     <style>
+        /* Add font-face with local fallback */
+        @font-face {
+            font-family: 'Dancing Script';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: local('Dancing Script Bold'), local('DancingScript-Bold'), 
+                 url('https://fonts.gstatic.com/s/dancingscript/v24/If2cXTr6YS-zF4S-kcSWSVi_szLgiuE.woff2') format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        
+        /* Critical CSS - Load above the fold content first */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
         body, html {
             margin: 0;
             padding: 0;
@@ -167,10 +195,22 @@
             Taklifnomani ochish
         </button>
     </div>
-    <video id="videoPlayer" muted style="display: none;">
+    <video id="videoPlayer" muted style="display: none;" preload="none" playsinline>
         <source src="invitation_videos/video.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
+    <!-- Thank You Popup -->
+    <div id="thankYouPopup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.5s ease;">
+        <div style="background: white; padding: 30px 50px; border-radius: 15px; text-align: center; transform: translateY(-20px); transition: transform 0.5s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 80%;">
+            <h2 style="color: #333; margin-bottom: 20px; font-family: 'Dancing Script', cursive; font-size: 2em;">Rahmat!</h2>
+            <p style="color: #555; margin-bottom: 25px; font-size: 1.2em;">Sizni kutyapmiz! ❤️</p>
+            <button id="closePopupBtn" style="padding: 10px 25px; font-size: 16px; background: linear-gradient(45deg, #4CAF50, #45a049); color: white; border: none; border-radius: 25px; cursor: pointer; transition: all 0.3s ease;">
+                Yopish
+            </button>
+        </div>
+    </div>
+    
+    <!-- Close Button -->
     <div id="closeButtonContainer" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;">
         <button id="closeButton" style="padding: 12px 30px; font-size: 18px; border: none; border-radius: 25px; background: linear-gradient(45deg, #ff6b6b, #ff8e8e); color: white; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease;">
             Albatta boraman!
@@ -282,17 +322,43 @@
             if (bgMusic) {
                 bgMusic.muted = true;
             }
-            // Show a thank you message
-            alert('Albatta keling, sizni kutamiz!');
-            // Close the current window/tab
-            window.close();
-            // Fallback in case window.close() doesn't work
-            window.open('', '_self', '');
-            window.close();
+            
+            // Show the thank you popup
+            const popup = document.getElementById('thankYouPopup');
+            popup.style.display = 'flex';
+            // Trigger the animation
+            setTimeout(() => {
+                popup.style.opacity = '1';
+                popup.querySelector('div').style.transform = 'translateY(0)';
+            }, 10);
         });
         
-        // Set the video source but don't start it automatically
-        videoPlayer.src = 'invitation_videos/video.mp4';
+        // Close popup button handler
+        document.getElementById('closePopupBtn').addEventListener('click', function() {
+            const popup = document.getElementById('thankYouPopup');
+            popup.style.opacity = '0';
+            popup.querySelector('div').style.transform = 'translateY(-20px)';
+            
+            // After the fade out animation completes, close the window
+            setTimeout(() => {
+                popup.style.display = 'none';
+                // Close the current window/tab
+                window.close();
+                // Fallback in case window.close() doesn't work
+                window.open('', '_self', '');
+                window.close();
+            }, 500);
+        });
+        
+        // Set the video source only when needed
+        function loadVideo() {
+            if (!videoPlayer.src) {
+                videoPlayer.src = 'invitation_videos/video.mp4';
+            }
+        }
+        
+        // Load video when play button is clicked
+        document.getElementById('playButton').addEventListener('click', loadVideo);
         
         // When video ends, show close button after 2 seconds
         videoPlayer.onended = function() {
